@@ -1,0 +1,80 @@
+---
+title: "Gene Signature Project"
+author: "Elsa Bernard"
+date: "18/03/14"
+output: html_document
+---
+
+```{r, echo=FALSE, results="hide", include=FALSE}
+library(ggplot2)
+source("../utils/ggstyles.R")
+```
+
+# Clinical
+
+```{r, echo=FALSE, fig.width=13, fig.height=6}
+clinical = read.csv("../../data/Clinical_info.csv", stringsAsFactors=F)
+clinical$ID = paste0("PV",clinical$ID)
+```
+
+```{r echo=TRUE}
+#
+nrow(clinical)
+#
+table(clinical$subgroup)
+#
+table(clinical$WHO)
+#
+table(clinical$Sex)
+#
+table(clinical$Cyto)
+```
+
+# Genotype
+
+```{r, echo=FALSE, fig.width=13, fig.height=6}
+genotype = read.table("../../data/genotype.txt", sep="\t", stringsAsFactors=F)
+colnames(genotype) = c("region","type","ID")
+genotype = genotype[genotype$region != "WHO_subtype",]
+genotype$region = factor(genotype$region, levels=names(sort(table(genotype$region),decreasing=T)))
+```
+
+```{r echo=TRUE}
+# Cohort size
+nrow(clinical)
+# Patient with genomic alteration
+length(unique(genotype$ID))
+```
+
+```{r, echo=FALSE, fig.width=14, fig.height=7}
+# plot
+ggplot(genotype) + geom_bar(aes(x=region, fill=type)) + theme0 + angle45 + topleg + nolegtitle
+```
+
+
+# Expression
+
+Log2 CPM on genes for each patient and 3 normal samples.
+
+```{r echo=FALSE}
+# CD34
+cd = read.table("../../data/CD34_log2cpm.txt", sep="\t", stringsAsFactors=F, header=T)
+# BMMNC
+bm = read.table("../../data/BMMNC_log2cpm.txt", sep="\t", stringsAsFactors=F, header=T)
+colnames(bm) = as.vector(sapply(colnames(bm), function(x) strsplit(x,split="_BMMNC")[[1]][1]))
+# CPM>1 in at least >5 samples
+icd34 = apply(cd, 1, function(x) sum(x>0)>5)
+ibm = apply(bm, 1, function(x) sum(x>0)>5)
+```
+
+```{r echo=TRUE}
+# CD34 expression
+dim(cd)
+# BMMNC expression
+dim(bm)
+# after gentle CPM filtering
+# ie CPM>1 in at least >5 samples
+sum(icd34)
+sum(ibm)
+length(intersect(rownames(cd)[icd34],rownames(bm)[ibm]))
+```
