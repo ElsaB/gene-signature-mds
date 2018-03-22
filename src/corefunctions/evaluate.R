@@ -46,8 +46,8 @@ evaluateCVwithROCR <- function(resCV, measure="acc", x.measure="cutoff") {
     # example of usage: 
     #    - measure="tpr", x.measure="fpr" ---> ROC curve
     #    - measure="auc", x.measure="cutoff" ---> AUC
-    #list.pred = lapply(resCV, function(c) 1-c[[1]]) # TO MAKE SURE
-    list.pred = lapply(resCV, function(c) 1-c$proba) # TO MAKE SURE
+    list.pred = lapply(resCV, function(c) c$proba) # TO MAKE SURE
+    #list.pred = lapply(resCV, function(c) 1-c$proba)
     list.ref = lapply(resCV, function(c) c$ref)
     pred.obj = prediction(list.pred, list.ref)
     perf.obj = performance(pred.obj, measure=measure, x.measure=x.measure)

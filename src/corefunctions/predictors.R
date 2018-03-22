@@ -35,7 +35,7 @@ predictorRF <- function(patientTrain, patientTest, labelTrain, positiveClass="1"
     # Train a random forest model
     model.rf = randomForest(patientTrain, factor(labelTrain), ntree = ntree)
     # Make predictions and output probabilities
-    pred.rf = predict(model.rf, patientTest, type="prob")[,positiveClass]
+    pred.rf = 1 - predict(model.rf, patientTest, type="prob")[,positiveClass]
     class.rf = predict(model.rf, patientTest, type="class")
 
     return(list(class=class.rf , proba=pred.rf, gene=NULL))
@@ -77,9 +77,9 @@ predictorLogistic <- function(patientTrain, patientTest, labelTrain, positiveCla
     # alpha=1/2 --> elastic net
 
     # Train a logistic model with internal cross validation
-    cvfit = cv.glmnet(patientTrain, factor(labelTrain), family = "binomial", type.measure = "auc", alpha=alpha, intnfolds=intnfolds, parallel=TRUE)
+    cvfit = cv.glmnet(patientTrain, factor(labelTrain), family = "binomial", type.measure = "auc", alpha=alpha, nfolds=intnfolds, parallel=TRUE)
     # Make predictions and output probabilities
-    proba.log = 1 - predict(cvfit, newx = patientTest, s = "lambda.min", type="response")[,positiveClass]
+    proba.log = predict(cvfit, newx = patientTest, s = "lambda.min", type="response")[,positiveClass]
     class.log = factor(predict(cvfit, newx = patientTest, s = "lambda.min", type="class")[,positiveClass])
     aa.log = predict(cvfit, newx = patientTest, s = "lambda.min", type="coef")[,1]
     gene.log = names(aa.log[aa.log>0][-1])
