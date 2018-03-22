@@ -14,10 +14,10 @@ colnames(bm) = as.vector(sapply(colnames(bm), function(x) strsplit(x,split="_BMM
 bm = bm[,-ncol(bm)]
 
 
-FilterLog2cpmMatrix <- function(X, minsample0=5, valuemax=4, valuemedian=1, variancemin=0.1) {
+FilterLog2cpmMatrix <- function(X, minsample0=5, valuemax=4, variancemin=0.1) {
 
-    # filter low express
-    iX = apply( X, 1, function(x) (sum(x>0)>minsample0 & max(x)>valuemax & median(x[x>0])>valuemedian ) )
+    # filter very low express genes
+    iX = apply( X, 1, function(x) ( sum(x>0)>minsample0 & max(x)>valuemax ) )
     X = X[iX,]
     # filter the very low variance genes
     myvar = apply(X,1,var)
