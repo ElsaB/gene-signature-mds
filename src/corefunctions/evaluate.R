@@ -41,6 +41,60 @@ runCV <- function(mypredictor, labelTrain, patientTrain, nfolds=5, nrepeats=10, 
 
 }
 
+# STABILITY SELECTION
+runSS <- function (mypredictor, patientTrain, labelTrain, nbootstrap=100, alpha=0.2, mc.cores=1, nsample=100, ...) {
+    # Stability selection in the spirit of Meinshausen&Buhlman
+    # But modified to accomodate low number of samples
+  
+    # mypredictor
+    # patientTrain: nxp design matrix
+    # labelTain: response of size n
+    
+    # return a dataframe with frequency of selection per feature 
+
+    n = nrow(patientTrain)
+    p = ncol(patientTrain)
+    halfsize = as.integer((n+(sample(c(0,1))[1]))/2)
+    
+    res.ss = mclapply(seq(nbootstrap),
+                     FUN=function(i) {
+
+                         cat(".")
+
+                         # Randomly reweight each variable
+                         xs = t(t(patientTrain)*runif(p,alpha,1))
+
+                         # Ramdomly split the sample in two sets
+                         #perm = sample(n)
+                         #i1 = perm[1:halfsize]
+                         #i2 = perm[(halfsize+1):n]
+
+                         # Bootstrap the samples [with replacement here]
+                         i1 = sample(n,nsample, replace=TRUE)
+                         print(length(i1))
+
+                         pred = mypredictor(patientTrain=xs[i1,], patientTest=xs[i1[1:2],], labelTrain=labelTrain[i1], ...)
+                         pred.gene = pred$gene
+
+                         return(pred.gene)
+                     },
+                     mc.cores=mc.cores
+                     )
+
+    res.gene = unlist(res.ss)
+    freq.gene = rep(0, ncol(patientTrain))
+    tt.gene = table(res.gene)
+
+    dd.res = data.frame( gene=colnames(patientTrain), freq=rep(0, ncol(patientTrain)) )
+  
+    jm = match(dd.res$gene, names(tt.gene))
+    dd.res[!is.na(jm),"freq"] = tt.gene[jm[!is.na(jm)]] / nbootstrap
+
+    return(dd.res)
+
+}
+
+
 # EVALUATE CV
 evaluateCVwithROCR <- function(resCV, measure="acc", x.measure="cutoff") {
     # example of usage: 

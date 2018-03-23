@@ -71,13 +71,13 @@ predictorSVM <- function(patientTrain, patientTest, labelTrain, positiveClass="1
 # ---------------------------------- #
 library(glmnet)
 library(parallel)
-predictorLogistic <- function(patientTrain, patientTest, labelTrain, positiveClass="1", alpha=1, intnfolds=5) {
+predictorLogistic <- function(patientTrain, patientTest, labelTrain, positiveClass="1", alpha=1, intnfolds=5, measure="auc") {
     # alpha=1 --> l1 penalty
     # alpha=0 --> l2 penalty
     # alpha=1/2 --> elastic net
 
     # Train a logistic model with internal cross validation
-    cvfit = cv.glmnet(patientTrain, factor(labelTrain), family = "binomial", type.measure = "auc", alpha=alpha, nfolds=intnfolds, parallel=TRUE)
+    cvfit = cv.glmnet(patientTrain, factor(labelTrain), family = "binomial", type.measure = measure, alpha=alpha, nfolds=intnfolds, parallel=TRUE)
     # Make predictions and output probabilities
     proba.log = predict(cvfit, newx = patientTest, s = "lambda.min", type="response")[,positiveClass]
     class.log = factor(predict(cvfit, newx = patientTest, s = "lambda.min", type="class")[,positiveClass])
