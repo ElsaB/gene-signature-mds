@@ -74,7 +74,9 @@ runSS <- function(mypredictor, patientTrain, labelTrain, nbootstrap=100, beta=0.
                          i1 = sample(n,sample(seq(nsamplemin,nsamplemax,by=5),1), replace=TRUE)
                          print(length(i1))
 
-                         pred = mypredictor(patientTrain=xs[i1,], patientTest=xs[i1[1:2],], labelTrain=labelTrain[i1], ...)
+                         xs.boot = xs[i1,]
+                         rownames(xs.boot) = NULL
+                         pred = mypredictor(patientTrain=xs.boot, patientTest=xs[1:2,], labelTrain=labelTrain[i1], ...)
                          pred.gene = pred$gene
 
                          return(pred.gene)
