@@ -25,7 +25,7 @@ beta = args[2]
 mc.cores=args[3]
 mypred=args[4] # SVM L1 EN
 
-print(paste("number of cores used for parallel CV is", mc.cores))
+print(paste("number of cores used for parallel SS is", mc.cores))
 
 nbootstrap=as.integer(nbootstrap)
 beta=as.numeric(beta)

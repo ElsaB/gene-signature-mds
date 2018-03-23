@@ -42,7 +42,7 @@ runCV <- function(mypredictor, labelTrain, patientTrain, nfolds=5, nrepeats=10, 
 }
 
 # STABILITY SELECTION
-runSS <- function (mypredictor, patientTrain, labelTrain, nbootstrap=100, alpha=0.2, mc.cores=1, nsample=100, ...) {
+runSS <- function(mypredictor, patientTrain, labelTrain, nbootstrap=100, beta=0.2, mc.cores=1, nsamplemin=80,nsamplemax=100, ...) {
     # Stability selection in the spirit of Meinshausen&Buhlman
     # But modified to accomodate low number of samples
   
@@ -62,7 +62,7 @@ runSS <- function (mypredictor, patientTrain, labelTrain, nbootstrap=100, alpha=
                          cat(".")
 
                          # Randomly reweight each variable
-                         xs = t(t(patientTrain)*runif(p,alpha,1))
+                         xs = t(t(patientTrain)*runif(p,beta,1))
 
                          # Ramdomly split the sample in two sets
                          #perm = sample(n)
@@ -70,7 +70,8 @@ runSS <- function (mypredictor, patientTrain, labelTrain, nbootstrap=100, alpha=
                          #i2 = perm[(halfsize+1):n]
 
                          # Bootstrap the samples [with replacement here]
-                         i1 = sample(n,nsample, replace=TRUE)
+                         #i1 = sample(n,nsample, replace=TRUE)
+                         i1 = sample(n,sample(seq(nsamplemin,nsamplemax,by=5),1), replace=TRUE)
                          print(length(i1))
 
                          pred = mypredictor(patientTrain=xs[i1,], patientTest=xs[i1[1:2],], labelTrain=labelTrain[i1], ...)
