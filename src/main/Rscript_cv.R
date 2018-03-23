@@ -113,7 +113,7 @@ save(rescv, file=paste0(out.path,"/resCV.Rdata"))
 
 z=sapply(rescv, function(x) length(unique(x$ref)))
 ishort = which(z==1)
-if (length(ishort)>0) { rescv.trick = rescv[-i] }
+if (length(ishort)>0) { rescv.trick = rescv[-ishort] }
 
 auc.cv = unlist(slot(evaluateCVwithROCR(rescv.trick, measure="auc", x.measure="cutoff"), "y.values"))
 print(paste("the mean AUC over", length(rescv.trick), "CV experiments is", round(mean(auc.cv),3)))
