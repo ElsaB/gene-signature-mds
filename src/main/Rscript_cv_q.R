@@ -44,7 +44,7 @@ seed=234
 # OUTPUT
 out.path=paste0(mypred,"_",nfolds,"x",nrepeats,"_Q",q,"_B",nbootstrap)
 system("mkdir -p results_cv_q")
-out.path = paste("results_cv",out.path,sep="/")
+out.path = paste("results_cv_q",out.path,sep="/")
 system(paste("mkdir -p", out.path))
 
 # ------------------ #
