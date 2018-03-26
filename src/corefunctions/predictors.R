@@ -71,7 +71,7 @@ predictorSVM <- function(patientTrain, patientTest, labelTrain, positiveClass="1
 # ---------------------------------- #
 library(glmnet)
 library(parallel)
-predictorLogistic <- function(patientTrain, patientTest, labelTrain, positiveClass="1", alpha=1, intnfolds=5, measure="auc") {
+predictorLogistic <- function(patientTrain, patientTest, labelTrain, positiveClass="1", alpha=1, intnfolds=5, measure="deviance") {
     # alpha=1 --> l1 penalty
     # alpha=0 --> l2 penalty
     # alpha=1/2 --> elastic net

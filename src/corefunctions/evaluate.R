@@ -72,7 +72,6 @@ runSS <- function(mypredictor, patientTrain, labelTrain, nbootstrap=100, beta=0.
                          # Bootstrap the samples [with replacement here]
                          #i1 = sample(n,nsample, replace=TRUE)
                          i1 = sample(n,sample(seq(nsamplemin,nsamplemax,by=5),1), replace=TRUE)
-                         print(length(i1))
 
                          xs.boot = xs[i1,]
                          rownames(xs.boot) = NULL

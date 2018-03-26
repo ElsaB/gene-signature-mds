@@ -56,21 +56,26 @@ QpredictorRF <- function(patientTrain, patientTest, labelTrain, positiveClass="1
 # SVM classification
 # ---------------------------------- #
 library(kernlab)
-predictorSVM <- function(patientTrain, patientTest, labelTrain, positiveClass="1", intnfolds=5, Clist=2^seq(-10,15)) {
+QpredictorSVM <- function(patientTrain, patientTest, labelTrain, positiveClass="1", intnfolds=5, Clist=2^seq(-10,15), q=100, ...) {
 
+    # Run Stability Selection on the training set
+    imp.svm = runSS(mypredictor=predictorSVM, patientTrain=patientTrain, labelTrain=labelTrain, ...)
+    # Consider importance
+    # Select the Q most important feature
+    isort.svm = sort(imp.svm$freq, decreasing=T, index.r=T)$ix[1:q]
+    # Re-train with limited features
     list.svp = vector(mode="list",length=length(Clist))
     ii = 0
     for (cc in Clist) {
         ii = ii+1
-        list.svp[[ii]] <- ksvm(patientTrain,labelTrain,type="C-svc",kernel="rbf",C=cc,cross=intnfolds) #, prob.model=TRUE)
+        list.svp[[ii]] <- ksvm(patientTrain[,isort.svm],labelTrain,type="C-svc",kernel="rbf",C=cc,cross=intnfolds) #, prob.model=TRUE)
     }
     mycv = sapply(list.svp, function(x) cross(x))
     svp = list.svp[[which.min(mycv)]]
-
     #proba.svm = predict(svp, patientTest, type="proba")[,positiveClass]
-    proba.svm = predict(svp, patientTest, type="decision")[,1]
-    class.svm = factor(predict(svp, patientTest, type="response"))
-    gene.svm = colnames(patientTrain)[alphaindex(svp)[[1]]]
+    proba.svm = predict(svp, patientTest[,isort.svm], type="decision")[,1]
+    class.svm = factor(predict(svp, patientTest[,isort.svm], type="response"))
+    gene.svm = colnames(patientTrain[,isort.svm])[alphaindex(svp)[[1]]]
 
     return(list(class=class.svm , proba=proba.svm, gene=gene.svm))
 
@@ -81,7 +86,7 @@ predictorSVM <- function(patientTrain, patientTest, labelTrain, positiveClass="1
 # ---------------------------------- #
 library(glmnet)
 library(parallel)
-QpredictorLogistic <- function(patientTrain, patientTest, labelTrain, positiveClass="1", q=100, ...) {
+QpredictorLogistic <- function(patientTrain, patientTest, labelTrain, positiveClass="1", q=100, measure="deviance", intnfolds=5, alpha=1, ...) {
     # alpha=1 --> l1 penalty
     # alpha=0 --> l2 penalty
     # alpha=1/2 --> elastic net
