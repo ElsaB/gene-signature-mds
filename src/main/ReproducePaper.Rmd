@@ -1,0 +1,168 @@
+---
+title: "MDS-subgroup gene expression"
+date: "18/03/27"
+output: pdf_document
+author: "Elsa Bernard"
+---
+
+```{r, echo=FALSE, results="hide", include=FALSE}
+library(ggplot2)
+library(gplots)
+source("../utils/ggstyles.R")
+library(glmnet)
+```
+
+# Data
+
+Here we describe the training and test sets
+in order to make sure we do things properly!
+
+Training data are data with response (=subgroups)
+identified using CD34+ gene expressions,
+and the predictive features here are BMMNC gene expressions.
+
+Test data are data with only BMMNC expression.
+
+
+```{r, echo=FALSE}
+genes.paper = c("HOXB6","HOXB3","GPSM1","NYNRIN","SLMO1","ZNF662","SPINK2","MAPK12","HOXA3","AMN",
+		"ROBO4","MYO5C","PRODH","UGCG","OLFM4","LCN2","CAST","WARS","ELL2",
+		"CYSTM1","CYBB",
+		"JHDM1D","OLR1","CAMP","CRISP3")
+# -------------------------- #
+# DATA
+# -------------------------- #
+bm = read.table("../../data/BMMNC_log2cpm.txt", sep="\t", stringsAsFactors=F)
+colnames(bm) = as.vector(sapply(colnames(bm), function(x) strsplit(x,split="_BMMNC")[[1]][1]))
+bm = bm[,grep("PV",colnames(bm))]
+cd34 = read.table("../../data/CD34_log2cpm.txt", sep="\t", stringsAsFactors=F)
+cd34 = cd34[,grep("PV",colnames(cd34))]
+clinical = read.csv("../../data/Clinical_info.csv", stringsAsFactors=F)
+clinical$ID = paste0("PV",clinical$ID)
+
+training.samples = intersect(colnames(bm),colnames(cd34))
+test.samples = colnames(bm)[!colnames(bm)%in%colnames(cd34)]
+
+#print(paste("We have",length(training.samples),"training samples"))
+#print(paste("We have",length(test.samples),"test samples"))
+
+test.clinical = clinical[match(test.samples,clinical$ID),]
+training.clinical = clinical[match(training.samples,clinical$ID),]
+
+#table(training.clinical$WHO, training.clinical$subgroup)
+#table(training.clinical$AML, training.clinical$subgroup)
+#table(test.clinical$WHO, test.clinical$subgroup)
+#table(test.clinical$AML, test.clinical$subgroup)
+
+design = t(bm[genes.paper,])
+test.design = design[test.samples,]
+training.design = design[training.samples,]
+
+training.response = clinical$subgroup[match(rownames(training.design),clinical$ID)]
+```
+
+```{r, echo=TRUE}
+# number of samples in the training set:
+nrow(training.design)
+# number of samples in the test set:
+nrow(test.design)
+# number of subgroups (1 or 2) in the training set:
+table(training.response)
+```
+
+# Paper findings
+
+Below the logistic regression parameters explained in [Shiozawa et al., 2017].
+
+```{r, echo=TRUE}
+# selected genes for logistic regression:
+genes.paper = c("HOXB6","HOXB3","GPSM1","NYNRIN","SLMO1","ZNF662","SPINK2","MAPK12","HOXA3","AMN",
+		"ROBO4","MYO5C","PRODH","UGCG","OLFM4","LCN2","CAST","WARS","ELL2",
+		"CYSTM1","CYBB",
+		"JHDM1D","OLR1","CAMP","CRISP3")
+# logistic regression parameters:
+alpha.paper = 0.65
+lambda.paper = 0.216
+# we selected here only the above genes in the design:
+ncol(training.design)
+```
+
+# Reproduce subgroup prediction
+
+Before to tackle the gene-signature problem, 
+we first want to reproduce the classification described in the paper.
+
+We simply run a logistic regression with the described parameters.
+
+We then look if the subgroup predictions on the test set are similar to ones that have been sent to me.
+
+
+## Logistic with paper parameters
+
+Attempt0:
+
+```{r, echo=TRUE}
+# train a unpenalized logistic regression with specified genes:
+model.rep0 = glmnet(training.design, training.response,
+		   family="binomial", lambda=0)
+# the coefficient are different than the ones from the paper:
+coef(model.rep0)
+# test the fitted model:
+class.rep0 = predict(model.rep0, newx = test.design, type="class")
+# the predictions do not match the ones from the paper:
+table(paste0("clinical_",test.clinical$subgroup), paste0("predicted_",class.rep0))
+```
+
+Attempt1:
+
+```{r, echo=TRUE}
+# train a penalized logistic regression with specified genes and parameters:
+model.rep = glmnet(training.design, training.response,
+		   family="binomial",
+		   alpha=alpha.paper, lambda=lambda.paper)
+# test the fitted model:
+class.rep = predict(model.rep, newx = test.design, type="class")
+# the predictions do not match the ones from the paper:
+table(paste0("clinical_",test.clinical$subgroup), paste0("predicted_",class.rep))
+```
+
+## Logistic with tuned lambda
+
+Attemp2:
+
+```{r, echo=TRUE}
+# train a penalized logistic regression with specified genes and alpha and tune lambda:
+model.rep2 = cv.glmnet(training.design, training.response, family="binomial", alpha=alpha.paper)
+# test the fitted model:
+class.rep2 = predict(model.rep2, newx = test.design, type="class", s="lambda.min")
+# the predictions do not match the ones from the paper:
+table(paste0("clinical_",test.clinical$subgroup), paste0("predicted_",class.rep2))
+```
+
+# Conclusion
+
+By simply running a logistic regression with the parameters from [Shiozawa et al., 2017],
+I am not able to reproduce the subgroup classification of the test set.
+
+I might be doing something stupid...
+
+Would be nice if you could share the code as a baseline first!
+
+
+
+```{r, echo=FALSE}
+# -------------------------- #
+# REPRODUCE
+# -------------------------- #
+#ddfit = as.data.frame( cbind(training.design, training.response) )
+#ddfit$training.response = factor(ddfit$training.response)
+#myformula = paste0("training.response ~ ", paste(colnames(training.design),collapse="+"))
+#model.fit = glm(as.formula(myformula), data=ddfit, family=binomial, alpha=alpha.paper, lambda=lambda.paper)
+# TRY 3
+#toadd = c("Age","Blast","Hb","ANC","Plt","Cyto","Sex")
+#model.matrix( ~ 0 + WHO, training.clinical)
+#training.see = cbind( training.design , training.clinical[,toadd], model.matrix( ~ 0 + WHO, training.clinical))
+#model.rep3 = cv.glmnet(as.matrix(training.see), training.response, family="binomial", alpha=alpha.paper)
+#class.rep3 = predict(model.rep3, newx = as.matrix(cbind(test.design, test.clinical[,toadd], model.matrix( ~ 0 + WHO, test.clinical)[,-4])), type="class", s="lambda.min")
+#table(test.clinical$subgroup, class.rep3)
+```

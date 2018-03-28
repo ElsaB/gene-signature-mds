@@ -41,6 +41,7 @@ if (mypred=="RF") {
 # ------------------ #
 
 dd.imp.rf$predictor=mypred
+dd.imp.rf$gene = rownames(dd.imp.rf)
 
 print(paste("save in",out.path))
 

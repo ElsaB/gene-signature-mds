@@ -7,6 +7,7 @@ output: html_document
 
 ```{r, echo=FALSE, results="hide", include=FALSE}
 library(ggplot2)
+library(gplots)
 source("../utils/ggstyles.R")
 ```
 
@@ -43,7 +44,6 @@ sapply(list.res, function(x) round(mean(x$acc_max),3))
 ```
 
 ```{r, echo=FALSE}
-mycol = c("#f4a582","#0571b0","#92c5de","#ca0020","grey")
 mycol = c("#045a8d","#2b8cbe","#993404","#c51b8a","#bdc9e1")
 ggbox = ggplot(res,aes(x=label, y=auc, fill=label)) + geom_boxplot() + theme1 + scale_fill_manual(values=mycol) + noleg + noxtitle + xlab("method")
 ggdensity = ggplot(res,aes(x=auc, fill=label)) + geom_density(position="stack") + theme1 + scale_fill_manual(values=mycol) + topleg + nolegtitle
@@ -60,9 +60,13 @@ ggdensity
 
 # Feature importance
 
-# stability-selection
+## stability-selection
+
 ```{r, echo=FALSE}
-algo.ss = c("SVM","L1","EN")
+algo.ss = c("L1","EN")
+#algo.ss = c("SVM","L1","EN")
+# BUG WITH SVM!
+# probably a big for SVM (equally 100...)
 list.ss = vector(mode="list", length=length(algo.ss))
 i = 0
 for (myalgo in algo.ss) {
@@ -71,17 +75,102 @@ for (myalgo in algo.ss) {
     list.ss[[i]] = read.table(oo, header=T, sep="\t", stringsAsFactors=F)
 }
 names(list.ss) = algo.ss
-res = do.call("rbind", list.ss)
-meanauc = sapply(list.res, function(x) round(mean(x$auc),3))
-res$mean_auc = rep(meanauc, each=nrow(list.res[[1]]))
-ilevels = sort(meanauc, decreasing=T, index.r=T)$ix
-res$predictor = factor(res$predictor, levels=unique(res$predictor)[ilevels])
-res$label = paste0(res$predictor, "\n", paste0("AUC=",res$mean_auc))
-res$label = factor(res$label, levels=unique(res$label)[ilevels])
+
+isl1 = sort(list.ss$L1$freq, decreasing=T, index.r=T)$ix
+isen = sort(list.ss$EN$freq, decreasing=T, index.r=T)$ix
+sres = rbind(list.ss[[1]][isl1,], list.ss[[2]][isl1,])
+q = 150
+l1geneQ = list.ss[[1]][isl1,"gene"][1:q]
+ENgeneQ = list.ss[[2]][isen,"gene"][1:q]
+geneQ = unique(c(l1geneQ,ENgeneQ))
+sresQ = sres[sres$gene %in% geneQ, ]
+sresQ$gene = factor(sresQ$gene, levels=geneQ)
 ```
 
-# random-forest-importance
+```{r, echo=TRUE}
+# number of non-zero frequency genes per method
+sapply(list.ss, function(x) sum(x$freq>0))
+# summary of non-zero frequency distribution
+sapply(list.ss, function(x) summary(x$freq[x$freq>0]))
+# first top 150 genes
+# q = 150
+sapply(list.ss, function(x) summary(sort(x$freq,decreasing=T)[1:q]))
+# genes in common among the top 150 list
+length(intersect(l1geneQ, ENgeneQ))
+# genes specific
+sum(!ENgeneQ %in% intersect(l1geneQ, ENgeneQ))
+sum(!l1geneQ %in% intersect(l1geneQ, ENgeneQ))
+length(intersect(l1geneQ, ENgeneQ))
+```
 
+```{r, echo=TRUE}
+venn(list(L1=l1geneQ, EN=ENgeneQ))
+ggplot(sresQ) + geom_bar(aes(x=gene, y=freq, fill=predictor), stat="identity") + facet_grid(predictor~.) + theme0 + angle45
+ggplot(sresQ) + geom_bar(aes(x=gene, y=freq, fill=predictor), position=position_dodge(), stat="identity")
+```
+
+## random-forest-importance
+
+```{r, echo=FALSE}
+rfimp = read.table("./results_impRF/impRF.txt", header=T, sep="\t", stringsAsFactors=F)
+rfimp = rfimp[sort(rfimp$MeanDecreaseGini, decreasing=T, index.r=T)$ix,]
+RFgeneQ = rfimp$gene[1:q]
+```
+
+```{r, echo=TRUE}
+venn(list(L1=l1geneQ, EN=ENgeneQ, RF=RFgeneQ))
+length(intersect(l1geneQ, RFgeneQ))
+length(intersect(ENgeneQ, RFgeneQ))
+```
+
+# Cross-validation with restricted features
+
+```{r, echo=FALSE}
+algo.q = c("RF","L1","EN")
+list.q = vector(mode="list", length=length(algo.q))
+i = 0
+for (myalgo in algo.q) {
+    i = i + 1
+    oo = paste0("./results_cv_q/",myalgo,"_5x200_Q150_B100/resCV.txt")
+    list.q[[i]] = read.table(oo, header=T, sep="\t", stringsAsFactors=F)
+}
+names(list.q) = algo.q
+res.q = do.call("rbind", list.q)
+meanauc.q = sapply(list.q, function(x) round(mean(x$auc),3))
+res.q$mean_auc = rep(meanauc.q, each=nrow(list.q[[1]]))
+ilevels = sort(meanauc.q, decreasing=T, index.r=T)$ix
+res.q$predictor = factor(res.q$predictor, levels=unique(res.q$predictor)[ilevels])
+res.q$label = paste0(res.q$predictor, "\n", paste0("AUC=",res.q$mean_auc))
+res.q$label = factor(res.q$label, levels=unique(res.q$label)[ilevels])
+res$type = "extended"
+res.q$type = "restricted"
+allres = rbind(res[res$predictor %in% unique(res.q$predictor),], res.q)
+```
+
+```{r, echo=TRUE}
+# mean AUC over CV experiments
+sapply(list.q, function(x) round(mean(x$auc),3))
+# mean Fscore-max over CV experiments
+sapply(list.q, function(x) round(mean(x$fscore_max),3))
+# mean Accuracy-max over CV experiments
+sapply(list.q, function(x) round(mean(x$acc_max),3))
+# TODO paired t-test
+```
+
+```{r, echo=FALSE}
+mycol = c("#045a8d","#2b8cbe","#993404","#c51b8a","#bdc9e1")
+
+allres$label2 = paste(allres$type,"\n",allres$label)
+
+ggplot(allres,aes(x=label2, y=auc, fill=predictor)) + geom_boxplot() + theme1 + scale_fill_manual(values=mycol) + noleg + noxtitle + xlab("method") + facet_grid(.~predictor, scale="free")
+
+ggplot(allres,aes(x=label2, y=auc, fill=predictor)) + geom_boxplot() + theme1 + scale_fill_manual(values=mycol) + noleg + noxtitle + xlab("method") + facet_grid(.~predictor, scale="free")
+
+ggplot(allres,aes(x=label2, y=fscore_max, fill=predictor)) + geom_boxplot() + theme1 + scale_fill_manual(values=mycol) + noleg + noxtitle + xlab("method") + facet_grid(.~predictor, scale="free")
+ggplot(allres,aes(x=label2, y=acc_max, fill=predictor)) + geom_boxplot() + theme1 + scale_fill_manual(values=mycol) + noleg + noxtitle + xlab("method") + facet_grid(.~predictor, scale="free")
+
+#ggdensity = ggplot(res,aes(x=auc, fill=label)) + geom_density(position="stack") + theme1 + scale_fill_manual(values=mycol) + topleg + nolegtitle
+```
 
 
 ## Results as scatter plot
@@ -105,8 +194,3 @@ ggplot(ddscatter,aes(x=myx, y=myy, colour=predictor)) + geom_point(size=2) + the
 # with paired-t-test significance
 ggscatter
 ```
-
-
-
-
-
