@@ -34,11 +34,11 @@ res$label = factor(res$label, levels=unique(res$label)[ilevels])
 
 ## results as numbers
 ```{r, echo=TRUE}
-# mean AUC over CV experiments
+# mean AUC over 1000 CV experiments
 sapply(list.res, function(x) round(mean(x$auc),3))
-# mean Fscore-max over CV experiments
+# mean Fscore-max over 1000 CV experiments
 sapply(list.res, function(x) round(mean(x$fscore_max),3))
-# mean Accuracy-max over CV experiments
+# mean Accuracy-max over 1000 CV experiments
 sapply(list.res, function(x) round(mean(x$acc_max),3))
 # TODO paired t-test
 ```
@@ -164,7 +164,7 @@ allres$label2 = paste(allres$type,"\n",allres$label)
 
 ggplot(allres,aes(x=label2, y=auc, fill=predictor)) + geom_boxplot() + theme1 + scale_fill_manual(values=mycol) + noleg + noxtitle + xlab("method") + facet_grid(.~predictor, scale="free")
 
-ggplot(allres,aes(x=label2, y=auc, fill=predictor)) + geom_boxplot() + theme1 + scale_fill_manual(values=mycol) + noleg + noxtitle + xlab("method") + facet_grid(.~predictor, scale="free")
+#ggplot(allres,aes(x=label2, y=auc, fill=predictor)) + geom_boxplot() + theme1 + scale_fill_manual(values=mycol) + noleg + noxtitle + xlab("method") + facet_grid(.~predictor, scale="free")
 
 ggplot(allres,aes(x=label2, y=fscore_max, fill=predictor)) + geom_boxplot() + theme1 + scale_fill_manual(values=mycol) + noleg + noxtitle + xlab("method") + facet_grid(.~predictor, scale="free")
 ggplot(allres,aes(x=label2, y=acc_max, fill=predictor)) + geom_boxplot() + theme1 + scale_fill_manual(values=mycol) + noleg + noxtitle + xlab("method") + facet_grid(.~predictor, scale="free")
@@ -176,21 +176,21 @@ ggplot(allres,aes(x=label2, y=acc_max, fill=predictor)) + geom_boxplot() + theme
 ## Results as scatter plot
 
 ```{r, echo=FALSE}
-tmp1 = res[res$predictor=="EN",]
-tmp2 = res[res$predictor!="EN",]
-ddscatter = tmp2[,c(1,4)]
-colnames(ddscatter)[1] = "myy"
-ddscatter$myx = rep(tmp1$auc,4)
-t.test.lasso = signif(t.test(res$CI[res$predictor=="KRR"],res$CI[res$predictor=="Lasso"],alternative="greater", paired=T)$p.value,2)
-t.test.en = signif(t.test(res$CI[res$predictor=="KRR"],res$CI[res$predictor=="ElasticNet"],alternative="greater", paired=T)$p.value,2)
-t.test.rf = signif(t.test(res$CI[res$predictor=="KRR"],res$CI[res$predictor=="randomForest"],alternative="greater", paired=T)$p.value,2)
-ddscatter$label = rep(paste0("pvalue = ",c(t.test.lasso,t.test.en,t.test.rf)),each=nrow(tmp1))
-ggscatter = ggplot(ddscatter,aes(x=myx, y=myy, colour=predictor)) + geom_point(size=2) + theme1 + scale_colour_manual(values=mycol) + noleg +  facet_wrap(predictor ~ label) + geom_abline(intercept=0, slope=1) + xlab("CI with KRR") + ylab("CI with state-of-the-art")
-ggplot(ddscatter,aes(x=myx, y=myy, colour=predictor)) + geom_point(size=2) + theme1 + scale_colour_manual(values=mycol) + noleg +  facet_grid(. ~ predictor) + geom_abline(intercept=0, slope=1)
+#tmp1 = res[res$predictor=="EN",]
+#tmp2 = res[res$predictor!="EN",]
+#ddscatter = tmp2[,c(1,4)]
+#colnames(ddscatter)[1] = "myy"
+#ddscatter$myx = rep(tmp1$auc,4)
+#t.test.lasso = signif(t.test(res$CI[res$predictor=="KRR"],res$CI[res$predictor=="Lasso"],alternative="greater", paired=T)$p.value,2)
+#t.test.en = signif(t.test(res$CI[res$predictor=="KRR"],res$CI[res$predictor=="ElasticNet"],alternative="greater", paired=T)$p.value,2)
+#t.test.rf = signif(t.test(res$CI[res$predictor=="KRR"],res$CI[res$predictor=="randomForest"],alternative="greater", paired=T)$p.value,2)
+#ddscatter$label = rep(paste0("pvalue = ",c(t.test.lasso,t.test.en,t.test.rf)),each=nrow(tmp1))
+#ggscatter = ggplot(ddscatter,aes(x=myx, y=myy, colour=predictor)) + geom_point(size=2) + theme1 + scale_colour_manual(values=mycol) + noleg +  facet_wrap(predictor ~ label) + geom_abline(intercept=0, slope=1) + xlab("CI with KRR") + ylab("CI with state-of-the-art")
+#ggplot(ddscatter,aes(x=myx, y=myy, colour=predictor)) + geom_point(size=2) + theme1 + scale_colour_manual(values=mycol) + noleg +  facet_grid(. ~ predictor) + geom_abline(intercept=0, slope=1)
 ```
 
 ```{r fig.width=15, fig.height=7, echo=TRUE}
 # scatter plot of mean chemical CI obtained with KRR versus alternative methods
 # with paired-t-test significance
-ggscatter
+#ggscatter
 ```
